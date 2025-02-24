@@ -10,21 +10,9 @@ import { AssessmentScreen } from "@/components/assessment-screen";
 import { TutorialsSection } from "@/components/tutorials-section";
 import { tutorials } from "@/data/tutorials";
 
-const mockHistory = [
-  {
-    id: "1",
-    timestamp: new Date(),
-    preview: "Basic greetings in Spanish",
-  },
-  {
-    id: "2",
-    timestamp: new Date(Date.now() - 3600000),
-    preview: "Past tense practice",
-  },
-];
-
 export default function Index() {
   const [selectedLanguage, setSelectedLanguage] = useState<string>();
+  const [selectedVoice, setSelectedVoice] = useState<string>();
   const [showAssessment, setShowAssessment] = useState(true);
   const [currentTutorial, setCurrentTutorial] = useState<string | null>(null);
 
@@ -33,18 +21,20 @@ export default function Index() {
   };
 
   const getCurrentTutorial = () => {
+    if (!selectedLanguage) return null;
+    const languageTutorials = tutorials[selectedLanguage];
     return (
-      tutorials.Beginner.find((t) => t.id === currentTutorial) ||
-      tutorials.Intermediate.find((t) => t.id === currentTutorial) ||
-      tutorials.Advanced.find((t) => t.id === currentTutorial) ||
-      tutorials.Beginner[0]
+      languageTutorials.Beginner.find((t) => t.id === currentTutorial) ||
+      languageTutorials.Intermediate.find((t) => t.id === currentTutorial) ||
+      languageTutorials.Advanced.find((t) => t.id === currentTutorial) ||
+      languageTutorials.Beginner[0]
     );
   };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-zinc-50 to-zinc-100/50">
       <ChatHistorySidebar 
-        history={mockHistory} 
+        history={[]}
         onSelectChat={(id) => console.log("Selected chat:", id)} 
       />
       
@@ -53,7 +43,9 @@ export default function Index() {
           {showAssessment ? (
             <AssessmentScreen
               selectedLanguage={selectedLanguage}
+              selectedVoice={selectedVoice}
               onLanguageSelect={setSelectedLanguage}
+              onVoiceSelect={setSelectedVoice}
               onStartAssessment={handleStartAssessment}
             />
           ) : currentTutorial ? (
@@ -66,7 +58,7 @@ export default function Index() {
                 ← Back to Tutorials
               </Button>
               <TutorialLesson
-                {...getCurrentTutorial()}
+                {...getCurrentTutorial()!}
                 onComplete={() => setCurrentTutorial(null)}
               />
             </div>
@@ -85,7 +77,7 @@ export default function Index() {
               
               <TabsContent value="tutorial" className="space-y-6">
                 <TutorialsSection 
-                  tutorials={tutorials}
+                  tutorials={tutorials[selectedLanguage!]}
                   onSelectTutorial={setCurrentTutorial}
                 />
               </TabsContent>
