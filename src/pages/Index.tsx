@@ -5,7 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatHistorySidebar } from "@/components/chat-history-sidebar";
 import { LanguageSelector } from "@/components/language-selector";
 import { LanguageLevelBadge } from "@/components/ui/language-level-badge";
-import { BookOpen, MessageSquare } from "lucide-react";
+import { BookOpen, MessageSquare, GraduationCap, Sparkles } from "lucide-react";
+import { TutorialLesson } from "@/components/tutorial-lesson";
+import { PracticeChat } from "@/components/practice-chat";
 
 const mockHistory = [
   {
@@ -20,14 +22,95 @@ const mockHistory = [
   },
 ];
 
+const tutorials = {
+  Beginner: [
+    {
+      id: "basic-1",
+      title: "Basic Greetings",
+      description: "Learn essential greetings and introductions.",
+      content: "Let's start with the most common greeting in Spanish.",
+      targetPhrase: "¡Hola! ¿Cómo estás?",
+      translation: "Hello! How are you?",
+    },
+    {
+      id: "basic-2",
+      title: "Numbers 1-10",
+      description: "Master counting in your target language.",
+      content: "Practice pronunciation of numbers.",
+      targetPhrase: "uno, dos, tres...",
+      translation: "one, two, three...",
+    },
+  ],
+  Intermediate: [
+    {
+      id: "intermediate-1",
+      title: "Past Tense Practice",
+      description: "Master the past tense in conversations.",
+      content: "Let's practice describing what you did yesterday.",
+      targetPhrase: "Ayer fui al mercado.",
+      translation: "Yesterday I went to the market.",
+    },
+  ],
+  Advanced: [
+    {
+      id: "advanced-1",
+      title: "Idiomatic Expressions",
+      description: "Learn native-like expressions and idioms.",
+      content: "Common Spanish idioms and their meanings.",
+      targetPhrase: "Meter la pata",
+      translation: "To put one's foot in it (to make a mistake)",
+    },
+  ],
+};
+
 export default function Index() {
   const [selectedLanguage, setSelectedLanguage] = useState<string>();
   const [showAssessment, setShowAssessment] = useState(true);
+  const [currentTutorial, setCurrentTutorial] = useState<string | null>(null);
 
   const handleStartAssessment = () => {
-    // Will implement assessment logic later
     setShowAssessment(false);
   };
+
+  const renderTutorialSection = (level: keyof typeof tutorials) => (
+    <div className="p-6 rounded-xl border bg-white/50 backdrop-blur-sm space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h3 className="font-semibold text-lg">{level} Level</h3>
+          <p className="text-sm text-zinc-500">
+            {level === "Beginner"
+              ? "Perfect for starting your language journey"
+              : level === "Intermediate"
+              ? "Build upon your foundation"
+              : "Master advanced concepts"}
+          </p>
+        </div>
+        <LanguageLevelBadge level={level} />
+      </div>
+
+      <div className="grid gap-4">
+        {tutorials[level].map((tutorial) => (
+          <div
+            key={tutorial.id}
+            className="p-4 rounded-lg border bg-white/80 hover:bg-white/90 transition-colors"
+          >
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <h4 className="font-medium">{tutorial.title}</h4>
+                <p className="text-sm text-zinc-600">{tutorial.description}</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setCurrentTutorial(tutorial.id)}
+              >
+                Start
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-zinc-50 to-zinc-100/50">
@@ -40,6 +123,7 @@ export default function Index() {
         <div className="max-w-4xl mx-auto p-8">
           {showAssessment ? (
             <div className="text-center space-y-6 mt-20">
+              <GraduationCap className="w-12 h-12 mx-auto text-primary" />
               <h1 className="text-4xl font-bold tracking-tight">
                 Welcome to AI Language Tutor
               </h1>
@@ -52,6 +136,23 @@ export default function Index() {
                   Start Assessment
                 </Button>
               </div>
+            </div>
+          ) : currentTutorial ? (
+            <div className="space-y-4">
+              <Button
+                variant="ghost"
+                onClick={() => setCurrentTutorial(null)}
+                className="mb-4"
+              >
+                ← Back to Tutorials
+              </Button>
+              <TutorialLesson
+                {...tutorials.Beginner.find((t) => t.id === currentTutorial) ||
+                  tutorials.Intermediate.find((t) => t.id === currentTutorial) ||
+                  tutorials.Advanced.find((t) => t.id === currentTutorial) ||
+                  tutorials.Beginner[0]}
+                onComplete={() => setCurrentTutorial(null)}
+              />
             </div>
           ) : (
             <Tabs defaultValue="tutorial" className="space-y-6">
@@ -66,40 +167,33 @@ export default function Index() {
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="tutorial" className="space-y-4">
-                <div className="grid gap-4">
-                  <div className="p-6 rounded-xl border bg-white/50 backdrop-blur-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-lg">Basic Conversations</h3>
-                      <LanguageLevelBadge level="Beginner" />
-                    </div>
-                    <p className="text-zinc-600">
-                      Start with basic greetings and everyday conversations.
-                    </p>
-                    <Button>Begin Lesson</Button>
-                  </div>
-                  
-                  <div className="p-6 rounded-xl border bg-white/50 backdrop-blur-sm space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-lg">Intermediate Speaking</h3>
-                      <LanguageLevelBadge level="Intermediate" />
-                    </div>
-                    <p className="text-zinc-600">
-                      Practice complex conversations and improve fluency.
-                    </p>
-                    <Button>Begin Lesson</Button>
-                  </div>
+              <TabsContent value="tutorial" className="space-y-6">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold mb-2">
+                    Structured Learning Path
+                  </h2>
+                  <p className="text-zinc-600">
+                    Follow our AI-guided tutorials to master your target language
+                  </p>
+                </div>
+
+                <div className="grid gap-6">
+                  {renderTutorialSection("Beginner")}
+                  {renderTutorialSection("Intermediate")}
+                  {renderTutorialSection("Advanced")}
                 </div>
               </TabsContent>
               
-              <TabsContent value="practice" className="min-h-[400px]">
-                <div className="p-6 rounded-xl border bg-white/50 backdrop-blur-sm">
-                  <h3 className="font-semibold text-lg mb-4">Free Conversation Practice</h3>
-                  <p className="text-zinc-600 mb-6">
-                    Practice freely with our AI language tutor. Speak or type in your chosen language.
+              <TabsContent value="practice" className="space-y-6">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold mb-2">
+                    Free Conversation Practice
+                  </h2>
+                  <p className="text-zinc-600">
+                    Chat freely with our AI tutor to improve your skills
                   </p>
-                  <Button>Start Conversation</Button>
                 </div>
+                <PracticeChat />
               </TabsContent>
             </Tabs>
           )}
