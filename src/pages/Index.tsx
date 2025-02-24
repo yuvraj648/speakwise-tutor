@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,7 +27,7 @@ const tutorials = {
       id: "basic-1",
       title: "Basic Greetings",
       description: "Learn essential greetings and introductions.",
-      content: "Let's start with the most common greeting in Spanish.",
+      content: "Let's start with the most common greeting in your chosen language. Listen to the pronunciation and practice speaking.",
       targetPhrase: "¡Hola! ¿Cómo estás?",
       translation: "Hello! How are you?",
     },
@@ -36,10 +35,18 @@ const tutorials = {
       id: "basic-2",
       title: "Numbers 1-10",
       description: "Master counting in your target language.",
-      content: "Practice pronunciation of numbers.",
+      content: "Practice pronunciation of numbers, essential for daily conversations.",
       targetPhrase: "uno, dos, tres...",
       translation: "one, two, three...",
     },
+    {
+      id: "basic-3",
+      title: "Everyday Phrases",
+      description: "Essential phrases for daily communication.",
+      content: "Learn common phrases you'll use in everyday situations.",
+      targetPhrase: "Por favor, gracias, de nada",
+      translation: "Please, thank you, you're welcome",
+    }
   ],
   Intermediate: [
     {
@@ -73,7 +80,7 @@ export default function Index() {
   };
 
   const renderTutorialSection = (level: keyof typeof tutorials) => (
-    <div className="p-6 rounded-xl border bg-white/50 backdrop-blur-sm space-y-6">
+    <div className="p-6 rounded-xl border bg-white/50 backdrop-blur-sm space-y-6 hover:bg-white/60 transition-colors animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h3 className="font-semibold text-lg">{level} Level</h3>
@@ -92,7 +99,7 @@ export default function Index() {
         {tutorials[level].map((tutorial) => (
           <div
             key={tutorial.id}
-            className="p-4 rounded-lg border bg-white/80 hover:bg-white/90 transition-colors"
+            className="p-4 rounded-lg border bg-white/80 hover:bg-white/90 transition-all hover:scale-[1.02] duration-200"
           >
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -102,6 +109,7 @@ export default function Index() {
               <Button
                 size="sm"
                 onClick={() => setCurrentTutorial(tutorial.id)}
+                className="hover:scale-105 transition-transform"
               >
                 Start
               </Button>
@@ -122,8 +130,8 @@ export default function Index() {
       <main className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto p-8">
           {showAssessment ? (
-            <div className="text-center space-y-6 mt-20">
-              <GraduationCap className="w-12 h-12 mx-auto text-primary" />
+            <div className="text-center space-y-6 mt-20 animate-fade-in">
+              <GraduationCap className="w-12 h-12 mx-auto text-primary animate-scale-in" />
               <h1 className="text-4xl font-bold tracking-tight">
                 Welcome to AI Language Tutor
               </h1>
@@ -131,8 +139,12 @@ export default function Index() {
                 Let's start by assessing your current level and language learning goals.
               </p>
               <div className="flex items-center justify-center gap-4">
-                <LanguageSelector onSelect={setSelectedLanguage} />
-                <Button onClick={handleStartAssessment} disabled={!selectedLanguage}>
+                <LanguageSelector onSelect={setSelectedLanguage} value={selectedLanguage} />
+                <Button 
+                  onClick={handleStartAssessment} 
+                  disabled={!selectedLanguage}
+                  className="hover:scale-105 transition-transform"
+                >
                   Start Assessment
                 </Button>
               </div>
@@ -142,7 +154,7 @@ export default function Index() {
               <Button
                 variant="ghost"
                 onClick={() => setCurrentTutorial(null)}
-                className="mb-4"
+                className="mb-4 hover:scale-105 transition-transform"
               >
                 ← Back to Tutorials
               </Button>
@@ -168,7 +180,7 @@ export default function Index() {
               </TabsList>
               
               <TabsContent value="tutorial" className="space-y-6">
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 animate-fade-in">
                   <h2 className="text-2xl font-bold mb-2">
                     Structured Learning Path
                   </h2>
@@ -185,7 +197,7 @@ export default function Index() {
               </TabsContent>
               
               <TabsContent value="practice" className="space-y-6">
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 animate-fade-in">
                   <h2 className="text-2xl font-bold mb-2">
                     Free Conversation Practice
                   </h2>

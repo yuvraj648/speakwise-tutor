@@ -16,32 +16,62 @@ interface TutorialLessonProps {
 export function TutorialLesson({ title, content, targetPhrase, translation, onComplete }: TutorialLessonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    // Will implement actual recording logic later
-    setTimeout(() => {
-      setProgress(100);
-      setIsRecording(false);
-    }, 3000);
+  const handleStartRecording = async () => {
+    try {
+      if (!isRecording) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setAudioStream(stream);
+        setIsRecording(true);
+        // Simulate progress for now
+        let currentProgress = 0;
+        const interval = setInterval(() => {
+          currentProgress += 10;
+          setProgress(currentProgress);
+          if (currentProgress >= 100) {
+            clearInterval(interval);
+            handleStopRecording();
+          }
+        }, 300);
+      } else {
+        handleStopRecording();
+      }
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+      setAudioStream(null);
+    }
+    setIsRecording(false);
   };
 
   const handlePlayAudio = () => {
-    // Will implement text-to-speech later
-    console.log("Playing audio");
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(targetPhrase);
+    synth.speak(utterance);
   };
 
   return (
-    <Card className="p-6 space-y-6">
+    <Card className="p-6 space-y-6 animate-fade-in">
       <div className="space-y-2">
         <h3 className="text-xl font-semibold">{title}</h3>
         <p className="text-zinc-600">{content}</p>
       </div>
 
-      <div className="space-y-4 p-4 bg-zinc-50 rounded-lg">
+      <div className="space-y-4 p-4 bg-zinc-50 rounded-lg hover:bg-zinc-100/80 transition-colors">
         <div className="flex items-center justify-between">
           <p className="text-lg font-medium">{targetPhrase}</p>
-          <Button variant="ghost" size="icon" onClick={handlePlayAudio}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handlePlayAudio}
+            className="hover:scale-105 transition-transform"
+          >
             <Volume2 className="w-5 h-5" />
           </Button>
         </div>
@@ -51,13 +81,13 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
       <div className="space-y-4">
         <div className="flex items-center gap-4">
           <Button
-            className="flex-1"
+            className="flex-1 hover:scale-[1.02] transition-transform"
             onClick={handleStartRecording}
             variant={isRecording ? "destructive" : "default"}
           >
             {isRecording ? (
               <>
-                <MicOff className="w-4 h-4 mr-2" />
+                <MicOff className="w-4 h-4 mr-2 animate-pulse" />
                 Stop Recording
               </>
             ) : (
@@ -68,11 +98,14 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
             )}
           </Button>
         </div>
-        <Progress value={progress} className="h-2" />
+        <Progress 
+          value={progress} 
+          className="h-2 transition-all duration-300" 
+        />
       </div>
 
       <Button 
-        className="w-full" 
+        className="w-full hover:scale-[1.02] transition-transform"
         variant="outline"
         onClick={onComplete}
         disabled={progress < 100}

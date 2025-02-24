@@ -23,6 +23,8 @@ export function PracticeChat() {
     },
   ]);
   const [input, setInput] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -49,8 +51,26 @@ export function PracticeChat() {
     }, 1000);
   };
 
+  const handleVoiceRecord = async () => {
+    try {
+      if (!isRecording) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setAudioStream(stream);
+        setIsRecording(true);
+      } else {
+        if (audioStream) {
+          audioStream.getTracks().forEach(track => track.stop());
+          setAudioStream(null);
+        }
+        setIsRecording(false);
+      }
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+    }
+  };
+
   return (
-    <Card className="flex flex-col h-[600px]">
+    <Card className="flex flex-col h-[600px] animate-fade-in">
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.map((message) => (
@@ -63,7 +83,7 @@ export function PracticeChat() {
                   message.isUser
                     ? "bg-primary text-primary-foreground"
                     : "bg-zinc-100"
-                }`}
+                } animate-scale-in`}
               >
                 <p className="text-sm">{message.content}</p>
               </div>
@@ -79,11 +99,20 @@ export function PracticeChat() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            className="transition-all focus:scale-[1.01]"
           />
-          <Button variant="outline" size="icon">
-            <Mic className="w-4 h-4" />
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={handleVoiceRecord}
+            className={`hover:scale-105 transition-transform ${isRecording ? 'bg-red-100 hover:bg-red-200' : ''}`}
+          >
+            <Mic className={`w-4 h-4 ${isRecording ? 'animate-pulse text-red-500' : ''}`} />
           </Button>
-          <Button onClick={handleSend}>
+          <Button 
+            onClick={handleSend}
+            className="hover:scale-105 transition-transform"
+          >
             <Send className="w-4 h-4" />
           </Button>
         </div>
