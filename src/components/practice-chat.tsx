@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Mic, Send } from "lucide-react";
+import { Mic, Send, Volume2 } from "lucide-react";
 
 interface Message {
   id: string;
@@ -25,6 +25,7 @@ export function PracticeChat() {
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -48,6 +49,8 @@ export function PracticeChat() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
+      // Play AI response
+      playAIResponse(aiResponse.content);
     }, 1000);
   };
 
@@ -57,17 +60,48 @@ export function PracticeChat() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         setAudioStream(stream);
         setIsRecording(true);
+        // Simulate voice recognition
+        setTimeout(() => {
+          setInput("This is a simulated voice input.");
+          handleStopRecording();
+        }, 2000);
       } else {
-        if (audioStream) {
-          audioStream.getTracks().forEach(track => track.stop());
-          setAudioStream(null);
-        }
-        setIsRecording(false);
+        handleStopRecording();
       }
     } catch (error) {
       console.error("Error accessing microphone:", error);
     }
   };
+
+  const handleStopRecording = () => {
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+      setAudioStream(null);
+    }
+    setIsRecording(false);
+  };
+
+  const playAIResponse = (text: string) => {
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => setIsPlaying(false);
+    setIsPlaying(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+      window.speechSynthesis.cancel();
+    };
+  }, [audioStream]);
 
   return (
     <Card className="flex flex-col h-[600px] animate-fade-in">
@@ -79,13 +113,23 @@ export function PracticeChat() {
               className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
+                className={`group max-w-[80%] rounded-lg p-3 ${
                   message.isUser
                     ? "bg-primary text-primary-foreground"
                     : "bg-zinc-100"
                 } animate-scale-in`}
               >
                 <p className="text-sm">{message.content}</p>
+                {!message.isUser && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => playAIResponse(message.content)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}

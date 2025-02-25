@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Volume2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 
 interface TutorialLessonProps {
   title: string;
@@ -17,6 +18,8 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
   const [isRecording, setIsRecording] = useState(false);
   const [progress, setProgress] = useState(0);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [transcription, setTranscription] = useState("");
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const handleStartRecording = async () => {
     try {
@@ -24,6 +27,8 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         setAudioStream(stream);
         setIsRecording(true);
+        // For now, simulate transcription
+        setTranscription("Recording in progress...");
         // Simulate progress for now
         let currentProgress = 0;
         const interval = setInterval(() => {
@@ -32,6 +37,8 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
           if (currentProgress >= 100) {
             clearInterval(interval);
             handleStopRecording();
+            // Simulate transcription result
+            setTranscription(targetPhrase);
           }
         }, 300);
       } else {
@@ -51,10 +58,27 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
   };
 
   const handlePlayAudio = () => {
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      return;
+    }
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(targetPhrase);
+    utterance.onend = () => setIsPlaying(false);
+    setIsPlaying(true);
     synth.speak(utterance);
   };
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+      window.speechSynthesis.cancel();
+    };
+  }, [audioStream]);
 
   return (
     <Card className="p-6 space-y-6 animate-fade-in">
@@ -70,7 +94,7 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
             variant="ghost" 
             size="icon" 
             onClick={handlePlayAudio}
-            className="hover:scale-105 transition-transform"
+            className={`hover:scale-105 transition-transform ${isPlaying ? 'text-primary' : ''}`}
           >
             <Volume2 className="w-5 h-5" />
           </Button>
@@ -79,6 +103,12 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
       </div>
 
       <div className="space-y-4">
+        <Input 
+          value={transcription}
+          readOnly
+          placeholder="Your speech will appear here..."
+          className="bg-zinc-50"
+        />
         <div className="flex items-center gap-4">
           <Button
             className="flex-1 hover:scale-[1.02] transition-transform"
