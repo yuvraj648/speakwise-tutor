@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +40,25 @@ export function VoiceSelectionScreen({
   const [currentVoiceIndex, setCurrentVoiceIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [synth] = useState(() => window.speechSynthesis);
+  const [assessmentStep, setAssessmentStep] = useState(0);
+  const assessmentQuestions = [
+    {
+      question: "What is your current level in this language?",
+      options: ["Complete Beginner", "Basic Understanding", "Intermediate", "Advanced"]
+    },
+    {
+      question: "How often do you practice this language?",
+      options: ["Never", "Occasionally", "Weekly", "Daily"]
+    },
+    {
+      question: "What aspects do you want to focus on?",
+      options: ["Speaking", "Listening", "Reading", "Writing", "All of the above"]
+    },
+    {
+      question: "What is your learning goal?",
+      options: ["Basic Conversation", "Business Communication", "Academic Purposes", "Cultural Interest"]
+    }
+  ];
 
   const handleLanguageSelect = (language: string) => {
     setSelectedLanguage(language);
@@ -62,6 +80,32 @@ export function VoiceSelectionScreen({
     }
 
     const utterance = new SpeechSynthesisUtterance(aiVoices[currentVoiceIndex].sampleText);
+    
+    const voice = synth.getVoices().find(v => {
+      const voiceName = aiVoices[currentVoiceIndex].name.toLowerCase();
+      const isDeep = voiceName.includes('deeper') || voiceName === 'orion' || voiceName === 'dipper' || voiceName === 'pegasus';
+      const isFemale = voiceName === 'ursa' || voiceName === 'vega' || voiceName === 'lyra' || voiceName === 'nova' || voiceName === 'capella';
+      
+      return v.lang.startsWith('en') && ((isDeep && !v.name.includes('female')) || (!isDeep && isFemale && v.name.includes('female')));
+    });
+
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    const voiceName = aiVoices[currentVoiceIndex].name.toLowerCase();
+    if (voiceName.includes('higher')) {
+      utterance.pitch = 1.2;
+    } else if (voiceName.includes('deeper')) {
+      utterance.pitch = 0.8;
+    }
+
+    if (voiceName.includes('energetic')) {
+      utterance.rate = 1.1;
+    } else if (voiceName === 'calm' || voiceName === 'serene') {
+      utterance.rate = 0.9;
+    }
+
     utterance.onend = () => setIsPlaying(false);
     setIsPlaying(true);
     synth.speak(utterance);
@@ -71,17 +115,78 @@ export function VoiceSelectionScreen({
     if (step === 'voice') {
       const interval = setInterval(() => {
         setCurrentVoiceIndex((prev) => (prev + 1) % aiVoices.length);
-      }, 5000); // Increased time to allow for voice preview
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [step]);
 
-  // Clean up speech synthesis when component unmounts
   useEffect(() => {
     return () => {
       synth.cancel();
     };
   }, [synth]);
+
+  const renderSkillsAssessment = () => (
+    <motion.div
+      key="skills"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6 text-center"
+    >
+      <div className="relative mx-auto w-32 h-32 mb-8">
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 1,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute inset-0 bg-blue-500/10 rounded-full"
+        />
+        <Mic className="w-32 h-32 text-primary relative z-10" />
+      </div>
+      <h2 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+        Let's Assess Your Skills
+      </h2>
+      
+      {assessmentStep < assessmentQuestions.length ? (
+        <div className="max-w-md mx-auto space-y-6">
+          <p className="text-xl font-medium">
+            {assessmentQuestions[assessmentStep].question}
+          </p>
+          <div className="space-y-3">
+            {assessmentQuestions[assessmentStep].options.map((option, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                className="w-full text-left justify-start hover:scale-105 transition-transform"
+                onClick={() => {
+                  if (assessmentStep < assessmentQuestions.length - 1) {
+                    setAssessmentStep(prev => prev + 1);
+                  } else {
+                    onComplete();
+                  }
+                }}
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <Button 
+          size="lg"
+          onClick={onComplete}
+          className="hover:scale-105 transition-transform text-lg px-8 py-6"
+        >
+          Start Your Journey
+        </Button>
+      )}
+    </motion.div>
+  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -238,43 +343,7 @@ export function VoiceSelectionScreen({
             </motion.div>
           )}
 
-          {step === 'skills' && (
-            <motion.div
-              key="skills"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6 text-center"
-            >
-              <div className="relative mx-auto w-32 h-32 mb-8">
-                <motion.div
-                  animate={{
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{
-                    duration: 1,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute inset-0 bg-blue-500/10 rounded-full"
-                />
-                <Mic className="w-32 h-32 text-primary relative z-10" />
-              </div>
-              <h2 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                Let's Assess Your Skills
-              </h2>
-              <p className="text-zinc-600 text-lg">
-                We'll ask you a few questions to understand your current level
-              </p>
-              <Button 
-                size="lg"
-                onClick={onComplete}
-                className="hover:scale-105 transition-transform text-lg px-8 py-6"
-              >
-                Start Assessment
-              </Button>
-            </motion.div>
-          )}
+          {step === 'skills' && renderSkillsAssessment()}
         </AnimatePresence>
       </div>
     </div>
