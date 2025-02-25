@@ -6,7 +6,7 @@ import { ChatHistorySidebar } from "@/components/chat-history-sidebar";
 import { BookOpen, MessageSquare } from "lucide-react";
 import { TutorialLesson } from "@/components/tutorial-lesson";
 import { PracticeChat } from "@/components/practice-chat";
-import { AssessmentScreen } from "@/components/assessment-screen";
+import { VoiceSelectionScreen } from "@/components/voice-selection-screen";
 import { TutorialsSection } from "@/components/tutorials-section";
 import { tutorials } from "@/data/tutorials";
 
@@ -39,17 +39,15 @@ export default function Index() {
       />
       
       <main className="flex-1 overflow-auto">
-        <div className="max-w-4xl mx-auto p-8">
+        <div className="h-full">
           {showAssessment ? (
-            <AssessmentScreen
-              selectedLanguage={selectedLanguage}
-              selectedVoice={selectedVoice}
+            <VoiceSelectionScreen
               onLanguageSelect={setSelectedLanguage}
               onVoiceSelect={setSelectedVoice}
-              onStartAssessment={handleStartAssessment}
+              onComplete={handleStartAssessment}
             />
           ) : currentTutorial ? (
-            <div className="space-y-4">
+            <div className="space-y-4 p-8">
               <Button
                 variant="ghost"
                 onClick={() => setCurrentTutorial(null)}
@@ -63,43 +61,45 @@ export default function Index() {
               />
             </div>
           ) : (
-            <Tabs defaultValue="tutorial" className="space-y-6">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-                <TabsTrigger value="tutorial" className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  AI Tutorials
-                </TabsTrigger>
-                <TabsTrigger value="practice" className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  Free Practice
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="tutorial" className="space-y-6">
-                {selectedLanguage && (
-                  <TutorialsSection 
-                    tutorials={{
-                      Beginner: tutorials[selectedLanguage].Beginner,
-                      Intermediate: tutorials[selectedLanguage].Intermediate,
-                      Advanced: tutorials[selectedLanguage].Advanced
-                    }}
-                    onSelectTutorial={setCurrentTutorial}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="practice" className="space-y-6">
-                <div className="text-center mb-8 animate-fade-in">
-                  <h2 className="text-2xl font-bold mb-2">
-                    Free Conversation Practice
-                  </h2>
-                  <p className="text-zinc-600">
-                    Chat freely with our AI tutor to improve your skills
-                  </p>
-                </div>
-                <PracticeChat />
-              </TabsContent>
-            </Tabs>
+            <div className="max-w-4xl mx-auto p-8">
+              <Tabs defaultValue="tutorial" className="space-y-6">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+                  <TabsTrigger value="tutorial" className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    AI Tutorials
+                  </TabsTrigger>
+                  <TabsTrigger value="practice" className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Free Practice
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="tutorial" className="space-y-6">
+                  {selectedLanguage && (
+                    <TutorialsSection 
+                      tutorials={{
+                        Beginner: tutorials[selectedLanguage].Beginner,
+                        Intermediate: tutorials[selectedLanguage].Intermediate,
+                        Advanced: tutorials[selectedLanguage].Advanced
+                      }}
+                      onSelectTutorial={setCurrentTutorial}
+                    />
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="practice" className="space-y-6">
+                  <div className="text-center mb-8 animate-fade-in">
+                    <h2 className="text-2xl font-bold mb-2">
+                      Free Conversation Practice
+                    </h2>
+                    <p className="text-zinc-600">
+                      Chat freely with our AI tutor to improve your skills
+                    </p>
+                  </div>
+                  <PracticeChat />
+                </TabsContent>
+              </Tabs>
+            </div>
           )}
         </div>
       </main>
