@@ -76,10 +76,16 @@ export default function Index() {
               </TabsList>
               
               <TabsContent value="tutorial" className="space-y-6">
-                <TutorialsSection 
-                  tutorials={tutorials[selectedLanguage!]}
-                  onSelectTutorial={setCurrentTutorial}
-                />
+                {selectedLanguage && (
+                  <TutorialsSection 
+                    tutorials={{
+                      Beginner: tutorials[selectedLanguage].Beginner,
+                      Intermediate: tutorials[selectedLanguage].Intermediate,
+                      Advanced: tutorials[selectedLanguage].Advanced
+                    }}
+                    onSelectTutorial={setCurrentTutorial}
+                  />
+                )}
               </TabsContent>
               
               <TabsContent value="practice" className="space-y-6">

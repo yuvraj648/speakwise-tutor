@@ -12,7 +12,11 @@ interface Tutorial {
 }
 
 interface TutorialsSectionProps {
-  tutorials: Record<string, Tutorial[]>;
+  tutorials: {
+    Beginner: Tutorial[];
+    Intermediate: Tutorial[];
+    Advanced: Tutorial[];
+  };
   onSelectTutorial: (id: string) => void;
 }
 
@@ -34,7 +38,7 @@ export function TutorialsSection({ tutorials, onSelectTutorial }: TutorialsSecti
       </div>
 
       <div className="grid gap-4">
-        {tutorials[level].map((tutorial) => (
+        {tutorials[level as keyof typeof tutorials].map((tutorial) => (
           <div
             key={tutorial.id}
             className="p-4 rounded-lg border bg-white/80 hover:bg-white/90 transition-all hover:scale-[1.02] duration-200"
