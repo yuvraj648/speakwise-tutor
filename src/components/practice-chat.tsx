@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,15 +13,17 @@ interface Message {
   content: string;
   isUser: boolean;
   timestamp: Date;
+  language?: 'en' | 'es';
 }
 
 export function PracticeChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "¡Hola! I'm your AI language tutor. How can I help you practice today?",
+      content: "Hello! I'm your AI language tutor. Would you like to practice English or Spanish? (¡Hola! Soy tu tutor de idiomas. ¿Te gustaría practicar inglés o español?)",
       isUser: false,
       timestamp: new Date(),
+      language: 'en',
     },
   ]);
   const [input, setInput] = useState("");
@@ -29,31 +32,70 @@ export function PracticeChat() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'es'>('en');
 
-  const generateAIResponse = (userMessage: string): string => {
+  const getLanguage = (text: string): 'en' | 'es' => {
+    // Simple language detection based on common words
+    const spanishWords = ['hola', 'gracias', 'por favor', 'buenos días', 'español'];
+    const lowerText = text.toLowerCase();
+    return spanishWords.some(word => lowerText.includes(word)) ? 'es' : 'en';
+  };
+
+  const generateAIResponse = (userMessage: string): { content: string, language: 'en' | 'es' } => {
     const lowerMessage = userMessage.toLowerCase();
+    const detectedLanguage = getLanguage(userMessage);
     
-    // Simple response generation based on user input
-    if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
-      return "Hello! It's great to meet you. Would you like to practice some basic conversations?";
+    // Update current language based on user's input
+    setCurrentLanguage(detectedLanguage);
+
+    // English responses
+    if (detectedLanguage === 'en') {
+      if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
+        return {
+          content: "Hello! It's great to practice English with you. What would you like to work on today?",
+          language: 'en'
+        };
+      }
+      if (lowerMessage.includes("how are you")) {
+        return {
+          content: "I'm doing well, thank you! Learning to express feelings is important - would you like to practice more emotion-related vocabulary?",
+          language: 'en'
+        };
+      }
+      if (lowerMessage.includes("weather")) {
+        return {
+          content: "Weather is a great topic! In English, we can talk about sunny, rainy, cloudy, or snowy days. What's the weather like where you are?",
+          language: 'en'
+        };
+      }
     }
-    else if (lowerMessage.includes("how are you")) {
-      return "I'm doing well, thank you for asking! How about you? This is a good chance to practice expressing feelings in our target language.";
+    
+    // Spanish responses
+    if (detectedLanguage === 'es') {
+      if (lowerMessage.includes("hola")) {
+        return {
+          content: "¡Hola! Me alegro de practicar español contigo. ¿Qué te gustaría trabajar hoy?",
+          language: 'es'
+        };
+      }
+      if (lowerMessage.includes("gracias")) {
+        return {
+          content: "¡De nada! Es importante practicar las expresiones de cortesía. ¿Quieres aprender más?",
+          language: 'es'
+        };
+      }
     }
-    else if (lowerMessage.includes("weather")) {
-      return "Talking about the weather is a great conversation topic! Let's practice some weather-related vocabulary. Would you like to learn how to describe different weather conditions?";
-    }
-    else if (lowerMessage.includes("learn") || lowerMessage.includes("teach")) {
-      return "I'd be happy to help you learn! What specific area would you like to focus on? We could work on vocabulary, grammar, or conversation practice.";
-    }
-    else if (lowerMessage.includes("practice") || lowerMessage.includes("exercise")) {
-      return "Great initiative! Let's practice together. Would you prefer to work on pronunciation, vocabulary, or have a free conversation?";
-    }
-    else if (lowerMessage.includes("goodbye") || lowerMessage.includes("bye")) {
-      return "Goodbye! You're making great progress. Remember to practice regularly!";
-    }
-    // Add more specific responses based on common language learning scenarios
-    return "I understand you're interested in " + userMessage + ". Let's explore that topic together. Would you like me to explain some related vocabulary or expressions?";
+
+    // Default responses based on detected language
+    return detectedLanguage === 'es' 
+      ? {
+          content: "Entiendo que quieres hablar sobre " + userMessage + ". ¡Practiquemos juntos!",
+          language: 'es'
+        }
+      : {
+          content: "I see you want to talk about " + userMessage + ". Let's practice together!",
+          language: 'en'
+        };
   };
 
   const handleSend = () => {
@@ -64,22 +106,25 @@ export function PracticeChat() {
       content: input,
       isUser: true,
       timestamp: new Date(),
+      language: currentLanguage,
     };
 
     setMessages((prev) => [...prev, newMessage]);
     setInput("");
 
-    // Generate contextual AI response
+    // Generate contextual AI response with a slight delay
     setTimeout(() => {
+      const response = generateAIResponse(input);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: generateAIResponse(input),
+        content: response.content,
         isUser: false,
         timestamp: new Date(),
+        language: response.language,
       };
       setMessages((prev) => [...prev, aiResponse]);
       playAIResponse(aiResponse.content);
-    }, 1000);
+    }, 500); // Reduced delay for better responsiveness
   };
 
   const handleVoiceRecord = async () => {
@@ -90,7 +135,9 @@ export function PracticeChat() {
         setIsRecording(true);
         // Simulate voice recognition
         setTimeout(() => {
-          setInput("This is a simulated voice input.");
+          setInput(currentLanguage === 'es' 
+            ? "Hola, ¿cómo estás?" 
+            : "Hello, how are you?");
           handleStopRecording();
         }, 2000);
       } else {
@@ -118,8 +165,9 @@ export function PracticeChat() {
       }
 
       setIsLoading(true);
-      // Using Aria's voice for chat - friendly, conversational tone
-      const audioUrl = await textToSpeech(text, ELEVEN_VOICES.ARIA);
+      // Use different voices for different languages
+      const voiceId = currentLanguage === 'es' ? ELEVEN_VOICES.ARIA : ELEVEN_VOICES.SARAH;
+      const audioUrl = await textToSpeech(text, voiceId);
       const newAudio = new Audio(audioUrl);
       
       newAudio.onended = () => {
@@ -185,7 +233,7 @@ export function PracticeChat() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={currentLanguage === 'es' ? "Escribe tu mensaje..." : "Type your message..."}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
             className="transition-all focus:scale-[1.01]"
           />
