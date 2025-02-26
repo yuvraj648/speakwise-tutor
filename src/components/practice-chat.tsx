@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Mic, Send, Volume2 } from "lucide-react";
+import { textToSpeech } from "@/services/elevenlabs";
+import { ELEVEN_VOICES } from "@/services/elevenlabs";
 
 interface Message {
   id: string;
@@ -26,6 +27,8 @@ export function PracticeChat() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -81,27 +84,42 @@ export function PracticeChat() {
     setIsRecording(false);
   };
 
-  const playAIResponse = (text: string) => {
-    if (isPlaying) {
-      window.speechSynthesis.cancel();
-      setIsPlaying(false);
-      return;
+  const playAIResponse = async (text: string) => {
+    try {
+      if (isPlaying && audio) {
+        audio.pause();
+        setIsPlaying(false);
+        return;
+      }
+
+      setIsLoading(true);
+      const audioUrl = await textToSpeech(text, ELEVEN_VOICES.LAURA);
+      const newAudio = new Audio(audioUrl);
+      
+      newAudio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      setAudio(newAudio);
+      setIsPlaying(true);
+      await newAudio.play();
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    } finally {
+      setIsLoading(false);
     }
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.onend = () => setIsPlaying(false);
-    setIsPlaying(true);
-    window.speechSynthesis.speak(utterance);
   };
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop());
+      if (audio) {
+        audio.pause();
+        URL.revokeObjectURL(audio.src);
       }
-      window.speechSynthesis.cancel();
     };
-  }, [audioStream]);
+  }, [audio]);
 
   return (
     <Card className="flex flex-col h-[600px] animate-fade-in">
@@ -124,10 +142,11 @@ export function PracticeChat() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    disabled={isLoading}
                     onClick={() => playAIResponse(message.content)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                   </Button>
                 )}
               </div>
