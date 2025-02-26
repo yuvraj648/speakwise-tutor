@@ -1,4 +1,6 @@
 
+import { supabase } from "@/integrations/supabase/client";
+
 interface VoiceSettings {
   stability: number;
   similarity_boost: number;
