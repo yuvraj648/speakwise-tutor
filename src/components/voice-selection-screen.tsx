@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Speaker, Globe2, Play, Square } from "lucide-react";
+import { textToSpeech } from "@/services/elevenlabs";
+import { ELEVEN_VOICES } from "@/services/elevenlabs";
 
 interface Voice {
   id: string;
@@ -59,6 +61,7 @@ export function VoiceSelectionScreen({
       options: ["Basic Conversation", "Business Communication", "Academic Purposes", "Cultural Interest"]
     }
   ];
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLanguageSelect = (language: string) => {
     setSelectedLanguage(language);
@@ -72,43 +75,49 @@ export function VoiceSelectionScreen({
     setStep('skills');
   };
 
-  const playVoiceSample = () => {
-    if (isPlaying) {
-      synth.cancel();
-      setIsPlaying(false);
-      return;
-    }
+  const playVoiceSample = async () => {
+    try {
+      if (isPlaying) {
+        synth.cancel();
+        setIsPlaying(false);
+        return;
+      }
 
-    const utterance = new SpeechSynthesisUtterance(aiVoices[currentVoiceIndex].sampleText);
-    
-    const voice = synth.getVoices().find(v => {
-      const voiceName = aiVoices[currentVoiceIndex].name.toLowerCase();
-      const isDeep = voiceName.includes('deeper') || voiceName === 'orion' || voiceName === 'dipper' || voiceName === 'pegasus';
-      const isFemale = voiceName === 'ursa' || voiceName === 'vega' || voiceName === 'lyra' || voiceName === 'nova' || voiceName === 'capella';
+      setIsLoading(true);
+      // Use the actual ElevenLabs voice for each preview
+      const voiceId = getVoiceId(aiVoices[currentVoiceIndex].name);
+      const audioUrl = await textToSpeech(aiVoices[currentVoiceIndex].sampleText || "", voiceId);
+      const audio = new Audio(audioUrl);
       
-      return v.lang.startsWith('en') && ((isDeep && !v.name.includes('female')) || (!isDeep && isFemale && v.name.includes('female')));
-    });
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
 
-    if (voice) {
-      utterance.voice = voice;
+      setIsPlaying(true);
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const voiceName = aiVoices[currentVoiceIndex].name.toLowerCase();
-    if (voiceName.includes('higher')) {
-      utterance.pitch = 1.2;
-    } else if (voiceName.includes('deeper')) {
-      utterance.pitch = 0.8;
-    }
-
-    if (voiceName.includes('energetic')) {
-      utterance.rate = 1.1;
-    } else if (voiceName === 'calm' || voiceName === 'serene') {
-      utterance.rate = 0.9;
-    }
-
-    utterance.onend = () => setIsPlaying(false);
-    setIsPlaying(true);
-    synth.speak(utterance);
+  // Helper function to map voice names to ElevenLabs voice IDs
+  const getVoiceId = (voiceName: string): string => {
+    const voiceMap: { [key: string]: string } = {
+      'Ursa': ELEVEN_VOICES.SARAH,
+      'Eclipse': ELEVEN_VOICES.ARIA,
+      'Orion': ELEVEN_VOICES.GEORGE,
+      'Vega': ELEVEN_VOICES.LAURA,
+      'Dipper': ELEVEN_VOICES.CHARLIE,
+      'Lyra': ELEVEN_VOICES.CHARLOTTE,
+      'Pegasus': ELEVEN_VOICES.CALLUM,
+      'Nova': ELEVEN_VOICES.RIVER,
+      'Orbit': ELEVEN_VOICES.ROGER,
+      'Capella': ELEVEN_VOICES.LIAM
+    };
+    return voiceMap[voiceName] || ELEVEN_VOICES.ARIA;
   };
 
   useEffect(() => {

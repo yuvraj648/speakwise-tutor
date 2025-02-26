@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +30,32 @@ export function PracticeChat() {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const generateAIResponse = (userMessage: string): string => {
+    const lowerMessage = userMessage.toLowerCase();
+    
+    // Simple response generation based on user input
+    if (lowerMessage.includes("hello") || lowerMessage.includes("hi")) {
+      return "Hello! It's great to meet you. Would you like to practice some basic conversations?";
+    }
+    else if (lowerMessage.includes("how are you")) {
+      return "I'm doing well, thank you for asking! How about you? This is a good chance to practice expressing feelings in our target language.";
+    }
+    else if (lowerMessage.includes("weather")) {
+      return "Talking about the weather is a great conversation topic! Let's practice some weather-related vocabulary. Would you like to learn how to describe different weather conditions?";
+    }
+    else if (lowerMessage.includes("learn") || lowerMessage.includes("teach")) {
+      return "I'd be happy to help you learn! What specific area would you like to focus on? We could work on vocabulary, grammar, or conversation practice.";
+    }
+    else if (lowerMessage.includes("practice") || lowerMessage.includes("exercise")) {
+      return "Great initiative! Let's practice together. Would you prefer to work on pronunciation, vocabulary, or have a free conversation?";
+    }
+    else if (lowerMessage.includes("goodbye") || lowerMessage.includes("bye")) {
+      return "Goodbye! You're making great progress. Remember to practice regularly!";
+    }
+    // Add more specific responses based on common language learning scenarios
+    return "I understand you're interested in " + userMessage + ". Let's explore that topic together. Would you like me to explain some related vocabulary or expressions?";
+  };
+
   const handleSend = () => {
     if (!input.trim()) return;
 
@@ -44,16 +69,15 @@ export function PracticeChat() {
     setMessages((prev) => [...prev, newMessage]);
     setInput("");
 
-    // Simulate AI response
+    // Generate contextual AI response
     setTimeout(() => {
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "That's great! Let me help you practice that phrase.",
+        content: generateAIResponse(input),
         isUser: false,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
-      // Play AI response
       playAIResponse(aiResponse.content);
     }, 1000);
   };
