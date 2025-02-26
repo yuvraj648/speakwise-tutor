@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -66,7 +67,8 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
       }
 
       setIsLoading(true);
-      const audioUrl = await textToSpeech(targetPhrase, ELEVEN_VOICES.SARAH);
+      // Using George's voice for tutorials - more formal, educational tone
+      const audioUrl = await textToSpeech(targetPhrase, ELEVEN_VOICES.GEORGE);
       const newAudio = new Audio(audioUrl);
       
       newAudio.onended = () => {

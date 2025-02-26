@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -93,7 +94,8 @@ export function PracticeChat() {
       }
 
       setIsLoading(true);
-      const audioUrl = await textToSpeech(text, ELEVEN_VOICES.LAURA);
+      // Using Aria's voice for chat - friendly, conversational tone
+      const audioUrl = await textToSpeech(text, ELEVEN_VOICES.ARIA);
       const newAudio = new Audio(audioUrl);
       
       newAudio.onended = () => {
@@ -111,7 +113,6 @@ export function PracticeChat() {
     }
   };
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (audio) {
