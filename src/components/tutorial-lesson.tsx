@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Volume2, Star, BookOpen, CheckCircle, XCircle } from "lucide-react";
@@ -28,83 +28,94 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
   const [showCelebration, setShowCelebration] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [currentStep, setCurrentStep] = useState<'listen' | 'practice' | 'review'>('listen');
-  const [recognitionRef] = useState<any>(() => {
+  const recognitionRef = useRef<any>(null);
+  
+  // Initialize speech recognition
+  useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || 
                               (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      return recognition;
-    }
-    return null;
-  });
-
-  // Setup speech recognition
-  useEffect(() => {
-    if (!recognitionRef) return;
-    
-    recognitionRef.onresult = (event: any) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
       
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript += transcript;
+      // Set language based on content
+      const isSpanish = /[áéíóúñ¿¡]/i.test(targetPhrase);
+      recognitionRef.current.lang = isSpanish ? 'es-ES' : 'en-US';
+      
+      recognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
         }
-      }
+        
+        const recognizedText = finalTranscript || interimTranscript;
+        console.log("Recognized:", recognizedText); // Debug
+        setTranscription(recognizedText);
+        
+        // Check if the transcription is close to the target phrase
+        const similarity = calculateSimilarity(recognizedText.toLowerCase(), targetPhrase.toLowerCase());
+        setProgress(Math.min(similarity * 100, 100));
+        
+        if (similarity > 0.7) {
+          handleStopRecording();
+          showSuccessAnimation();
+          setTranscription(targetPhrase);
+          setProgress(100);
+        }
+      };
       
-      const recognizedText = finalTranscript || interimTranscript;
-      setTranscription(recognizedText);
-      
-      // Check if the transcription is close to the target phrase
-      const similarity = calculateSimilarity(recognizedText.toLowerCase(), targetPhrase.toLowerCase());
-      setProgress(Math.min(similarity * 100, 100));
-      
-      if (similarity > 0.7) {
-        handleStopRecording();
-        showSuccessAnimation();
-        setTranscription(targetPhrase);
-        setProgress(100);
-      }
-    };
-    
-    recognitionRef.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-    };
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+      };
+    } else {
+      console.warn('Speech recognition not supported in this browser');
+    }
     
     return () => {
-      if (recognitionRef) {
-        recognitionRef.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
     };
-  }, [recognitionRef, targetPhrase]);
+  }, [targetPhrase]);
 
-  // Simple string similarity function (Levenshtein distance based)
+  // Enhanced string similarity function
   const calculateSimilarity = (str1: string, str2: string): number => {
-    const longerStr = str1.length > str2.length ? str1 : str2;
-    const shorterStr = str1.length > str2.length ? str2 : str1;
+    // Simple case - exact match
+    if (str1 === str2) return 1.0;
     
-    // Check if shorter string appears in longer string
-    if (longerStr.includes(shorterStr)) {
-      return shorterStr.length / longerStr.length;
+    // Clean strings for comparison - remove punctuation and extra spaces
+    const cleanStr1 = str1.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ").trim();
+    const cleanStr2 = str2.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ").trim();
+    
+    // If one string is completely contained in the other
+    if (cleanStr1.includes(cleanStr2) || cleanStr2.includes(cleanStr1)) {
+      return 0.8; // High similarity but not perfect
     }
     
-    // Check for partial matches
-    const words1 = str1.split(' ');
-    const words2 = str2.split(' ');
+    // Check individual words
+    const words1 = cleanStr1.split(' ');
+    const words2 = cleanStr2.split(' ');
     
     let matchCount = 0;
+    let totalWords = Math.max(words1.length, words2.length);
+    
+    // For each word in the first string, check if it appears in the second string
     for (const word of words1) {
-      if (word.length > 3 && words2.some(w => w.includes(word) || word.includes(w))) {
+      if (word.length > 2 && words2.some(w => w.includes(word) || word.includes(w))) {
         matchCount++;
       }
     }
     
-    return matchCount / Math.max(words1.length, words2.length);
+    // Calculate similarity
+    return matchCount / totalWords;
   };
 
   const showSuccessAnimation = () => {
@@ -117,11 +128,12 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
       if (!isRecording) {
         setAttempts(prev => prev + 1);
         
-        // Set language based on content
-        if (recognitionRef) {
+        // Re-initialize speech recognition with correct language
+        if (recognitionRef.current) {
           const isSpanish = /[áéíóúñ¿¡]/i.test(targetPhrase);
-          recognitionRef.lang = isSpanish ? 'es-ES' : 'en-US';
-          recognitionRef.start();
+          recognitionRef.current.lang = isSpanish ? 'es-ES' : 'en-US';
+          recognitionRef.current.start();
+          console.log("Started speech recognition in", isSpanish ? "Spanish" : "English");
         }
         
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -143,11 +155,12 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
       setAudioStream(null);
     }
     
-    if (recognitionRef) {
-      recognitionRef.stop();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
     }
     
     setIsRecording(false);
+    setCurrentStep('review');
   };
 
   const handlePlayAudio = async () => {
@@ -191,11 +204,11 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
         audio.pause();
         URL.revokeObjectURL(audio.src);
       }
-      if (recognitionRef) {
-        recognitionRef.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
     };
-  }, [audioStream, audio, recognitionRef]);
+  }, [audioStream, audio]);
 
   return (
     <Card className="p-6 space-y-6 animate-fade-in relative overflow-hidden">
