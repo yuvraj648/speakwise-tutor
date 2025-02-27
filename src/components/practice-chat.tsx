@@ -17,7 +17,11 @@ interface Message {
   language?: 'en' | 'es';
 }
 
-export function PracticeChat() {
+interface PracticeChatProps {
+  onSaveChat?: (preview: string) => string;
+}
+
+export function PracticeChat({ onSaveChat }: PracticeChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -39,6 +43,7 @@ export function PracticeChat() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [recognizedText, setRecognizedText] = useState("");
   const recognitionRef = useRef<any>(null);
+  const [chatId, setChatId] = useState<string | null>(null);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -91,6 +96,24 @@ export function PracticeChat() {
       }
     }
   }, [messages]);
+
+  // Save chat messages to localStorage
+  useEffect(() => {
+    if (messages.length > 1) {
+      // Only save if there's more than the initial welcome message
+      localStorage.setItem(`chat_messages_${chatId || 'current'}`, JSON.stringify(messages));
+      
+      // If we don't have a chatId yet and we have a message from the user, save this chat
+      if (!chatId && messages.some(m => m.isUser) && onSaveChat) {
+        // Get the first user message as preview
+        const firstUserMessage = messages.find(m => m.isUser);
+        if (firstUserMessage) {
+          const newChatId = onSaveChat(firstUserMessage.content.substring(0, 30) + '...');
+          setChatId(newChatId);
+        }
+      }
+    }
+  }, [messages, chatId, onSaveChat]);
 
   const getLanguage = (text: string): 'en' | 'es' => {
     // Enhanced language detection

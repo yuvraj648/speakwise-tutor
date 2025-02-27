@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatHistorySidebar } from "@/components/chat-history-sidebar";
@@ -10,11 +10,36 @@ import { VoiceSelectionScreen } from "@/components/voice-selection-screen";
 import { TutorialsSection } from "@/components/tutorials-section";
 import { tutorials } from "@/data/tutorials";
 
+interface ChatHistoryItem {
+  id: string;
+  timestamp: Date;
+  preview: string;
+}
+
 export default function Index() {
   const [selectedLanguage, setSelectedLanguage] = useState<string>();
   const [selectedVoice, setSelectedVoice] = useState<string>();
   const [showAssessment, setShowAssessment] = useState(true);
   const [currentTutorial, setCurrentTutorial] = useState<string | null>(null);
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
+
+  // Load chat history from localStorage on component mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('chatHistory');
+    if (savedHistory) {
+      try {
+        const parsedHistory = JSON.parse(savedHistory);
+        // Convert string timestamps back to Date objects
+        const historyWithDates = parsedHistory.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        }));
+        setChatHistory(historyWithDates);
+      } catch (error) {
+        console.error('Error parsing chat history:', error);
+      }
+    }
+  }, []);
 
   const handleStartAssessment = () => {
     setShowAssessment(false);
@@ -31,11 +56,32 @@ export default function Index() {
     );
   };
 
+  const saveNewChat = (preview: string) => {
+    const newChat = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      preview: preview
+    };
+    
+    const updatedHistory = [newChat, ...chatHistory];
+    setChatHistory(updatedHistory);
+    
+    // Save to localStorage
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+    return newChat.id;
+  };
+
+  const handleSelectChat = (id: string) => {
+    console.log("Selected chat:", id);
+    // Here you would typically load the selected chat
+    // For now we just log it
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-zinc-50 to-zinc-100/50">
       <ChatHistorySidebar 
-        history={[]}
-        onSelectChat={(id) => console.log("Selected chat:", id)} 
+        history={chatHistory}
+        onSelectChat={handleSelectChat} 
       />
       
       <main className="flex-1 overflow-auto">
@@ -57,7 +103,14 @@ export default function Index() {
               </Button>
               <TutorialLesson
                 {...getCurrentTutorial()!}
-                onComplete={() => setCurrentTutorial(null)}
+                onComplete={() => {
+                  // Save completed tutorial to chat history
+                  const tutorial = getCurrentTutorial();
+                  if (tutorial) {
+                    saveNewChat(`Completed: ${tutorial.title}`);
+                  }
+                  setCurrentTutorial(null);
+                }}
               />
             </div>
           ) : (
@@ -96,7 +149,7 @@ export default function Index() {
                       Chat freely with our AI tutor to improve your skills
                     </p>
                   </div>
-                  <PracticeChat />
+                  <PracticeChat onSaveChat={saveNewChat} />
                 </TabsContent>
               </Tabs>
             </div>
