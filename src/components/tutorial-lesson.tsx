@@ -139,7 +139,7 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         setAudioStream(stream);
         setIsRecording(true);
-        setTranscription("Listening...");
+        setTranscription(""); // Start with empty transcription, not "Listening..."
         setCurrentStep('practice');
       } else {
         handleStopRecording();
@@ -292,7 +292,7 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
           <Input 
             value={transcription}
             readOnly
-            placeholder="Your speech will appear here..."
+            placeholder={isRecording ? "Speak now..." : "Your speech will appear here..."}
             className={`bg-zinc-50 pr-10 transition-all ${isRecording ? 'border-red-400 animate-pulse' : progress > 0 ? 'border-green-400' : ''}`}
           />
           {progress >= 80 && (
