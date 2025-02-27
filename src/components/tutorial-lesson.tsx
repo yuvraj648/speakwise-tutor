@@ -29,6 +29,7 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
   const [attempts, setAttempts] = useState(0);
   const [currentStep, setCurrentStep] = useState<'listen' | 'practice' | 'review'>('listen');
   const recognitionRef = useRef<any>(null);
+  const recognitionActive = useRef<boolean>(false);
   
   // Initialize speech recognition
   useEffect(() => {
@@ -74,6 +75,27 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
       
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
+        // If there's an error, try to restart recognition
+        if (recognitionActive.current && event.error !== "no-speech") {
+          setTimeout(() => {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              console.error("Failed to restart recognition:", e);
+            }
+          }, 1000);
+        }
+      };
+      
+      recognitionRef.current.onend = () => {
+        // Try to restart if we're still in recording mode
+        if (recognitionActive.current) {
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            console.error("Failed to restart recognition on end:", e);
+          }
+        }
       };
     } else {
       console.warn('Speech recognition not supported in this browser');
@@ -81,7 +103,12 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
     
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        recognitionActive.current = false;
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error("Error stopping recognition on cleanup:", e);
+        }
       }
     };
   }, [targetPhrase]);
@@ -128,19 +155,26 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
       if (!isRecording) {
         setAttempts(prev => prev + 1);
         
-        // Re-initialize speech recognition with correct language
-        if (recognitionRef.current) {
-          const isSpanish = /[áéíóúñ¿¡]/i.test(targetPhrase);
-          recognitionRef.current.lang = isSpanish ? 'es-ES' : 'en-US';
-          recognitionRef.current.start();
-          console.log("Started speech recognition in", isSpanish ? "Spanish" : "English");
-        }
-        
+        // First get microphone access
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         setAudioStream(stream);
         setIsRecording(true);
-        setTranscription(""); // Start with empty transcription, not "Listening..."
+        setTranscription(""); // Clear previous transcription
         setCurrentStep('practice');
+        
+        // After getting microphone, start speech recognition
+        if (recognitionRef.current) {
+          const isSpanish = /[áéíóúñ¿¡]/i.test(targetPhrase);
+          recognitionRef.current.lang = isSpanish ? 'es-ES' : 'en-US';
+          recognitionActive.current = true;
+          
+          try {
+            recognitionRef.current.start();
+            console.log("Started speech recognition in", isSpanish ? "Spanish" : "English");
+          } catch (e) {
+            console.error("Error starting recognition:", e);
+          }
+        }
       } else {
         handleStopRecording();
       }
@@ -156,7 +190,12 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
     }
     
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      recognitionActive.current = false;
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error("Error stopping recognition:", e);
+      }
     }
     
     setIsRecording(false);
@@ -205,7 +244,12 @@ export function TutorialLesson({ title, content, targetPhrase, translation, onCo
         URL.revokeObjectURL(audio.src);
       }
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        recognitionActive.current = false;
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error("Error stopping recognition on unmount:", e);
+        }
       }
     };
   }, [audioStream, audio]);
