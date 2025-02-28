@@ -1,5 +1,5 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,33 +7,25 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
-
-  try {
-    const apiKey = Deno.env.get('ELEVENLABS_API_KEY')
-    if (!apiKey) {
-      throw new Error('ElevenLabs API key not found')
-    }
-
-    return new Response(
-      JSON.stringify({
-        secret: apiKey
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+  
+  // Your ElevenLabs API key would be stored as an environment variable in production
+  // This is a placeholder - you would need to set this in your Supabase project
+  const apiKey = Deno.env.get('ELEVENLABS_API_KEY') || 'your-api-key-here';
+  
+  return new Response(
+    JSON.stringify({
+      secret: apiKey,
+    }),
+    { 
+      headers: { 
+        ...corsHeaders,
+        'Content-Type': 'application/json',
       },
-    )
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      },
-    )
-  }
+      status: 200,
+    },
+  )
 })
